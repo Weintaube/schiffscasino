@@ -6,7 +6,9 @@ from gridField import gridField
 pygame.init()
 
 GameStages = Enum("GameStages", ["BUY", "PLACE", "PLAY"])
-stage = GameStages.PLACE #TODO change
+stage = GameStages.PLACE  # TODO change
+Grids = Enum("Grids", ["MAINGRID", "ENEMYGRID"])
+# grid = Grids.MAINGRID
 
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
@@ -29,7 +31,8 @@ shipsPlaced = []
 shipIndex = 0  # current selected ship to place
 mainGridx = 350  # start x of my grid
 mainGridy = 250  # start y of my grid
-#mainGrid = []  # two dimensional list of grid fields
+
+# mainGrid = []  # two dimensional list of grid fields
 
 
 def generate_ships():
@@ -47,12 +50,13 @@ def draw_ships():
     for ship in shipsPlaced:
         pygame.draw.rect(screen, ship.color, (ship.x, ship.y, ship.width, ship.height))
 
+
 def generate_grid(size):
     grid = []
     for i in range(size):
         row = []
         for j in range(size):
-            cell = gridField(i, j, i*blocksize+mainGridx, j*blocksize+mainGridy)
+            cell = gridField(i, j, i * blocksize + mainGridx, j * blocksize + mainGridy)
             row.append(cell)
         grid.append(row)
     return grid
@@ -82,45 +86,61 @@ def draw_grid(startx, starty, blocksize, size):
         screen.blit(text_surface, (startx - blocksize / 2, starty + blocksize / 2 + offset))
         offset += blocksize
 
+
 def mouse_icon():
     if stage == GameStages.PLACE:
-        currentShip = Ship(0, 0, shipstoplace[
-            shipIndex].size)
+        pygame.draw.rect(screen, currentship.color, (pygame.mouse.get_pos()[0] - 10, pygame.mouse.get_pos()[1] - 10, currentship.width, currentship.height))
+    elif stage == GameStages.PLAY:
+        pass
+        # if shooting, shoot icon or so
 
 
-def process_click(mousePos):
-    global shipIndex
-    if mousePos[0] in range(mainGridx, mainGridx + 10 * blocksize):
-        if mousePos[1] in range(mainGridy, mainGridy + 10 * blocksize):  # if click in the main grid
-            xclick = int((mousePos[0] - mainGridx) / blocksize)
-            yclick = int((mousePos[1] - mainGridy) / blocksize)
-            if xclick + currentShip.width / blocksize > gridSize or yclick + currentShip.height / blocksize > gridSize:  # if ship cant be placed as it overextends the space
-                return
+def process_click():
+    x, y = pygame.mouse.get_pos()
+    if x in range(mainGridx, mainGridx + 10 * blocksize):
+        if y in range(mainGridy, mainGridy + 10 * blocksize):  # if click in the main grid
+            xclick = int((x - mainGridx) / blocksize)
+            yclick = int((y - mainGridy) / blocksize)
+            if xclick + currentship.width / blocksize > gridSize or yclick + currentship.height / blocksize > gridSize:  # if ship cant be placed as it overextends the space
+                return None
+            else:
+                return Grids.MAINGRID, xclick, yclick  # return tuple for grid cell index and main grid
+    elif False:  # elif enemy grid
+        pass
 
 
-            canPlace = True
-            for x in range(xclick, int(xclick + currentShip.width / blocksize)):
-                for y in range(yclick, int(yclick + currentShip.height / blocksize)):
-                    if mainGrid[x][y].ship is not None:  # field already occupied
-                        canPlace = False
+def place_ships():
+    global shipIndex, currentship, stage
+    if process_click() is None:
+        return
+    grid, i, j, = process_click()  # i and j coordinates of the cell in which the click was in
+    if grid == Grids.MAINGRID:
+        canPlace = True  # check if ship can be placed or is too wide or high for grid
+        for x in range(i, int(i + currentship.width / blocksize)):
+            for y in range(j, int(j + currentship.height / blocksize)):
+                if mainGrid[x][y].ship is not None:  # field already occupied
+                    canPlace = False
 
-            if canPlace:  # place ship onto fields that are free
-                print("can place ship on "+ str(xclick)+" "+ str(yclick))
-                firstcell = mainGrid[xclick][yclick]
-                shipstoplace[shipIndex].placing(firstcell.xcoord, firstcell.ycoord, currentShip.width, currentShip.height)
-                for x in range(xclick, int(xclick + currentShip.width / blocksize)):
-                    for y in range(yclick, int(yclick + currentShip.height / blocksize)):
-                        cell = mainGrid[x][y] # cell to place ship in
-                        cell.place_ship(shipstoplace[shipIndex])  # add ship to field
-                        shipstoplace[shipIndex].add_field(cell)  # add the field to the ship todo problem with reference?
+        if canPlace:  # place ship onto fields that are free
+            firstcell = mainGrid[i][j]
+            shipstoplace[shipIndex].placing(firstcell.xcoord, firstcell.ycoord, currentship.width,
+                                            currentship.height)  # for drawing
+            for x in range(i, int(i + currentship.width / blocksize)):
+                for y in range(j, int(j + currentship.height / blocksize)):
+                    cell = mainGrid[x][y]  # cell to place ship in
+                    cell.place_ship(shipstoplace[shipIndex])  # add ship to cell
+                    shipstoplace[shipIndex].add_field(cell)  # add the cell to the ship todo problem with reference?
 
-                shipsPlaced.append(shipstoplace[shipIndex])
-                del(shipstoplace[shipIndex]) #todo delete hard copy?
-                print(shipstoplace)
-                shipIndex = 0
-                are_all_placed()
+            shipsPlaced.append(shipstoplace[shipIndex])
+            del (shipstoplace[shipIndex])
+            shipIndex = 0
+            if not all_placed():
+                currentship = Ship(0, 0, shipstoplace[shipIndex].size)
+            else:
+                stage = GameStages.PLAY
 
-def are_all_placed():
+
+def all_placed():
     allPlaced = True
     for ship in shipstoplace:
         if not ship.placed:
@@ -130,14 +150,15 @@ def are_all_placed():
         print("NEXT SCREEN")
     print(allPlaced)
     return allPlaced
-   
+
+
 def next_screen():
     print("ALL SHIPS ARE PLACED")
 
+
 generate_ships()  # make list of ships objects
 
-currentShip = Ship(0, 0, shipstoplace[shipIndex].size)  # default first ship next to mouse
-
+currentship = Ship(0, 0, shipstoplace[shipIndex].size)
 mainGrid = generate_grid(gridSize)
 
 while running:
@@ -146,36 +167,38 @@ while running:
         if event.type == pygame.QUIT:
             running = False
         elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_UP:
-                are_all_placed()
+            if stage == GameStages.PLACE:  # only process up and down when game stage is place
                 shipstoplace[shipIndex].deselect_ship()
-                shipIndex = max(0, shipIndex - 1)  # select one ship upwards
-                currentShip = Ship(0, 0, shipstoplace[
-                    shipIndex].size)  # change current ship copy, only change when current ship changes
+                if event.key == pygame.K_UP:
+                    shipIndex = max(0, shipIndex - 1)  # select one ship upwards
+                    currentship = Ship(0, 0, shipstoplace[shipIndex].size)
 
-            elif event.key == pygame.K_DOWN:
-                are_all_placed()
-                shipstoplace[shipIndex].deselect_ship()
-                shipIndex = min(shipIndex + 1, len(shipstoplace) - 1)  # select one ship downwards
-                currentShip = Ship(0, 0, shipstoplace[
-                    shipIndex].size)  # change current ship copy, only change when current ship changes
+                elif event.key == pygame.K_DOWN:
+                    shipIndex = min(shipIndex + 1, len(shipstoplace) - 1)  # select one ship downwards
+                    currentship = Ship(0, 0, shipstoplace[shipIndex].size)
 
-            elif event.key == pygame.K_LEFT or event.key == pygame.K_RIGHT:  # vertical orientation
-                currentShip.change_orientation()
+                elif event.key == pygame.K_LEFT or event.key == pygame.K_RIGHT:  # swap orientation
+                    currentship.change_orientation()
+
+                #shipstoplace[shipIndex].select_ship()  # select current ship
 
         elif event.type == pygame.MOUSEBUTTONDOWN:
-             #generates next screen
-            process_click(pygame.mouse.get_pos())
-            if not are_all_placed():
-                currentShip = Ship(0, 0, shipstoplace[shipIndex].size) # todo fix when all are placed
+            # generates next screen
+            if stage == GameStages.PLACE:
+                place_ships()
+        # process_click(pygame.mouse.get_pos())
 
-    screen.fill(PINK)
-    draw_ships()
-    draw_grid(mainGridx, mainGridy, blocksize, gridSize)
+    if stage == GameStages.PLACE: # todo
+        screen.fill(PINK)
+        draw_ships()
+        shipstoplace[shipIndex].select_ship()
+        draw_grid(mainGridx, mainGridy, blocksize, gridSize)
+    elif stage == GameStages.PLAY:
+        screen.fill(PINK)
+        draw_ships()
+        draw_grid(mainGridx, mainGridy, blocksize, gridSize)
 
-    shipstoplace[shipIndex].select_ship() #todo
+    mouse_icon()
 
-    pygame.draw.rect(screen, currentShip.color, (
-        pygame.mouse.get_pos()[0] - 10, pygame.mouse.get_pos()[1] - 10, currentShip.width, currentShip.height))
 
     pygame.display.update()

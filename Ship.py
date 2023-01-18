@@ -29,6 +29,7 @@ class Ship:
         self.color = self.startColor
 
     def change_orientation(self): # swap width and height
+        print("change orient")
         accu = self.width
         self.width = self.height
         self.height = accu
