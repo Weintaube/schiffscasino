@@ -11,5 +11,7 @@ class gridField:
 
     def place_ship(self, ship):
         self.ship = ship
-        
-        #check if occupied via orientation
+
+    def attack_cell(self):
+        #check if ship is already hit there, else give ship hit
+        return False

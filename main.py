@@ -12,8 +12,8 @@ Grids = Enum("Grids", ["MAINGRID", "ENEMYGRID"])
 
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
-PINK = (200, 100, 230)
-PURPLE = (100, 100, 230)
+PINK = (255, 200, 255)
+PURPLE = (160, 110, 170)
 c = (180, 230, 30)
 
 screen = pygame.display.set_mode((700, 600))
@@ -29,8 +29,12 @@ shipstoplace = []  # list of ship objects
 shipsPlaced = []
 
 shipIndex = 0  # current selected ship to place
-mainGridx = 350  # start x of my grid
+
+mainGridx = 370  # start x of my grid
 mainGridy = 250  # start y of my grid
+
+enemyGridx = 25
+enemyGridy = 250
 
 # mainGrid = []  # two dimensional list of grid fields
 
@@ -51,12 +55,12 @@ def draw_ships():
         pygame.draw.rect(screen, ship.color, (ship.x, ship.y, ship.width, ship.height))
 
 
-def generate_grid(size):
+def generate_grid(size, gridx, gridy):
     grid = []
     for i in range(size):
         row = []
         for j in range(size):
-            cell = gridField(i, j, i * blocksize + mainGridx, j * blocksize + mainGridy)
+            cell = gridField(i, j, i * blocksize + gridx, j * blocksize + gridy)
             row.append(cell)
         grid.append(row)
     return grid
@@ -97,16 +101,20 @@ def mouse_icon():
 
 def process_click():
     x, y = pygame.mouse.get_pos()
-    if x in range(mainGridx, mainGridx + 10 * blocksize):
-        if y in range(mainGridy, mainGridy + 10 * blocksize):  # if click in the main grid
+    if x in range(mainGridx, mainGridx + 10 * blocksize):  # if click in the main grid
+        if y in range(mainGridy, mainGridy + 10 * blocksize):
             xclick = int((x - mainGridx) / blocksize)
             yclick = int((y - mainGridy) / blocksize)
             if xclick + currentship.width / blocksize > gridSize or yclick + currentship.height / blocksize > gridSize:  # if ship cant be placed as it overextends the space
                 return None
             else:
                 return Grids.MAINGRID, xclick, yclick  # return tuple for grid cell index and main grid
-    elif False:  # elif enemy grid
-        pass
+
+    elif x in range(enemyGridx, enemyGridx + 10 * blocksize):  # if click in the enemy grid
+        if y in range(enemyGridy, enemyGridy + 10 * blocksize):
+            xclick = int((x - enemyGridx) / blocksize)
+            yclick = int((y - enemyGridy) / blocksize) #TODO distinguish if cell already hit?
+            return Grids.MAINGRID, xclick, yclick  # return tuple for grid cell index and enemy grid
 
 
 def place_ships():
@@ -145,21 +153,22 @@ def all_placed():
     for ship in shipstoplace:
         if not ship.placed:
             allPlaced = False
-    if allPlaced:
-        next_screen()
-        print("NEXT SCREEN")
-    print(allPlaced)
     return allPlaced
 
 
-def next_screen():
-    print("ALL SHIPS ARE PLACED")
-
+def attack():
+    if process_click() is None:
+        return
+    grid, i, j = process_click()
+    if grid == Grids.ENEMYGRID:
+        cell = enemyGrid[i][j]
+        cell.attack_cell() #TODO check for other player!!!
 
 generate_ships()  # make list of ships objects
 
 currentship = Ship(0, 0, shipstoplace[shipIndex].size)
-mainGrid = generate_grid(gridSize)
+mainGrid = generate_grid(gridSize, mainGridx, mainGridy)
+enemyGrid = generate_grid(gridSize, enemyGridx, enemyGridy)
 
 while running:
 
@@ -180,23 +189,27 @@ while running:
                 elif event.key == pygame.K_LEFT or event.key == pygame.K_RIGHT:  # swap orientation
                     currentship.change_orientation()
 
-                #shipstoplace[shipIndex].select_ship()  # select current ship
 
         elif event.type == pygame.MOUSEBUTTONDOWN:
-            # generates next screen
             if stage == GameStages.PLACE:
                 place_ships()
-        # process_click(pygame.mouse.get_pos())
+            elif stage == GameStages.PLAY:
+                attack()
 
-    if stage == GameStages.PLACE: # todo
-        screen.fill(PINK)
+    screen.fill(PURPLE)
+
+    if stage == GameStages.BUY:
+        pass
+
+    elif stage == GameStages.PLACE: # todo
         draw_ships()
         shipstoplace[shipIndex].select_ship()
         draw_grid(mainGridx, mainGridy, blocksize, gridSize)
+
     elif stage == GameStages.PLAY:
-        screen.fill(PINK)
         draw_ships()
         draw_grid(mainGridx, mainGridy, blocksize, gridSize)
+        draw_grid(enemyGridx, enemyGridy, blocksize, gridSize)
 
     mouse_icon()
 
