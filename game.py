@@ -1,42 +1,37 @@
 import pygame
 from enum import Enum
 from Ship import Ship
+from client import Client
 from gridField import gridField
 
 pygame.init()
-
-GameStages = Enum("GameStages", ["BUY", "PLACE", "PLAY"])
-stage = GameStages.PLACE  # TODO change
-Grids = Enum("Grids", ["MAINGRID", "ENEMYGRID"])
-# grid = Grids.MAINGRID
 
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
 PINK = (255, 200, 255)
 PURPLE = (160, 110, 170)
 c = (180, 230, 30)
-
 screen = pygame.display.set_mode((700, 600))
-running = True
-
+GameStages = Enum("GameStages", ["BUY", "PLACE", "PLAY"])
+Grids = Enum("Grids", ["MAINGRID", "ENEMYGRID"]) # for click identification
 gridSize = 10
 blocksize = 30
 my_font = pygame.font.SysFont('Arial', 15)
 letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j']  # for drawing
 numbers = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']  # for drawing
 shipNumbers = [5, 4, 4, 3, 3, 3, 2, 2, 2, 2]  # which sizes ships should have
+enemyships = []
 shipstoplace = []  # list of ship objects
 shipsPlaced = []
-
-shipIndex = 0  # current selected ship to place
-
 mainGridx = 370  # start x of my grid
 mainGridy = 250  # start y of my grid
-
 enemyGridx = 25
 enemyGridy = 250
 
-# mainGrid = []  # two dimensional list of grid fields
+stage = GameStages.PLACE  # TODO change
+shipIndex = 0  # current selected ship to place
+running = True
+#client = Client()  # initialises the connection
 
 
 def generate_ships():
@@ -165,13 +160,13 @@ def attack():
         cell.attack_cell() #TODO check for other player!!!
 
 generate_ships()  # make list of ships objects
-
 currentship = Ship(0, 0, shipstoplace[shipIndex].size)
 mainGrid = generate_grid(gridSize, mainGridx, mainGridy)
 enemyGrid = generate_grid(gridSize, enemyGridx, enemyGridy)
+client = Client()  # TODO handle exception
+
 
 while running:
-
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
