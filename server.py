@@ -1,8 +1,9 @@
 import socket
 from threading import Thread
+import time
 
 host = '127.0.0.1'  # server name
-port = 5000
+port = 5001
 
 
 class Server:
@@ -13,7 +14,7 @@ class Server:
 
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # TODO parameter
         self.socket.bind(('', port))  # bind the socket with server and port number
-        self.socket.listen(3)  # allow maximum 3 connections to server
+        self.socket.listen(2)  # allow maximum 2 connections to server
         print("Server is now listening...")
 
     def accept_connections(self):
@@ -27,11 +28,22 @@ class Server:
     def on_new_client(self, client):
         username = client.recv(1024).decode()  # username first msg
         print(username + " has registered")
+        time.sleep(1)
+        client.send(str.encode("Hello " + username + "! Welcome to the chat room!"))
 
         self.clients.append(client)  # append new user to lists
+        if len(self.clients) == 2:
+            print("Everybody is connected! Let's start the game.")
+            for c in self.clients:  # inform chat about leaving user
+                print(c)
+                time.sleep(1)
+                c.send(str.encode("START"))
+
         self.usernames.append(username)
 
-        client.send(str.encode("Hello " + username + "! Welcome to the chat room!"))
+
+
+
         while True:
             msg = client.recv(1024).decode()  # receive a msg
             if msg == "STOP":  # client is leaving chat
